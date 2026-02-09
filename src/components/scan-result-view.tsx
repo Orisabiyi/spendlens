@@ -99,7 +99,7 @@ export default function ScanResultView({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-h-screen">
       {/* Header with confidence badge */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-900">Scan Results</h2>
