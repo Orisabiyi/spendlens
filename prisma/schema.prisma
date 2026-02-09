@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Expense {
+  id            String        @id @default(cuid())
+  merchant      String
+  date          DateTime
+  time          String?
+  total         Decimal       @db.Decimal(10, 2)
+  currency      String        @default("NGN")
+  category      String        @default("Other")
+  paymentMethod String?       @map("payment_method")
+  taxAmount     Decimal?      @map("tax_amount") @db.Decimal(10, 2)
+  confidence    String        @default("medium")
+  imageUrl      String?       @map("image_url")
+  notes         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  items         ExpenseItem[]
+
+  @@map("expenses")
+}
+
+model ExpenseItem {
+  id        String  @id @default(cuid())
+  expenseId String  @map("expense_id")
+  name      String
+  quantity  String  @default("1")
+  price     Decimal @db.Decimal(10, 2)
+
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@map("expense_items")
+}
