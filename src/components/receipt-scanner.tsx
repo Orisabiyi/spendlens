@@ -112,7 +112,7 @@ export default function ReceiptScanner() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-1/2">
       {/* Upload Area */}
       {!preview && (
         <div
