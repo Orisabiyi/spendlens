@@ -26,6 +26,7 @@ import {
   ExpenseItem,
   EXPENSE_CATEGORIES,
 } from "@/types/expense";
+import { useCreateExpense } from "@/hooks/useExpenses";
 import Image from "next/image";
 
 interface ScanResultViewProps {
@@ -42,8 +43,8 @@ export default function ScanResultView({
   onSaved,
 }: ScanResultViewProps) {
   const [data, setData] = useState<ScanResult>(result);
-  const [saving, setSaving] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
+  const createMutation = useCreateExpense();
 
   const updateField = (field: keyof ScanResult, value: unknown) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -75,26 +76,13 @@ export default function ScanResultView({
       return;
     }
 
-    setSaving(true);
     try {
-      const response = await fetch("/api/expenses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Failed to save");
-      }
-
+      await createMutation.mutateAsync(data);
       onSaved();
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to save expense"
       );
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -339,10 +327,10 @@ export default function ScanResultView({
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving}
+          disabled={createMutation.isPending}
           className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {saving ? (
+          {createMutation.isPending ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
               Saving...
