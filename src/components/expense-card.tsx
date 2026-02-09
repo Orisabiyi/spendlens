@@ -6,7 +6,6 @@ import {
   Tag,
   Trash2,
   CreditCard,
-  Loader2,
   Eye,
   Pencil,
 } from "lucide-react";
@@ -21,25 +20,22 @@ import {
 import { useDeleteExpense } from "@/hooks/useExpenses";
 import ExpenseDetailModal from "./expense-detail-modal";
 import ExpenseEditModal from "./expense-edit-modal";
+import DeleteConfirmModal from "./delete-confirm-modal";
 
 interface ExpenseCardProps {
   expense: Expense;
 }
 
 export default function ExpenseCard({ expense }: ExpenseCardProps) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const deleteMutation = useDeleteExpense();
 
   const handleDelete = async () => {
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      return;
-    }
-
     try {
       await deleteMutation.mutateAsync(expense.id);
+      setShowDelete(false);
       toast.success("Expense deleted");
     } catch {
       toast.error("Failed to delete expense");
@@ -108,7 +104,6 @@ export default function ExpenseCard({ expense }: ExpenseCardProps) {
 
           {/* Action icons */}
           <div className="flex items-center gap-0.5">
-            {/* View */}
             <button
               type="button"
               onClick={() => setShowDetail(true)}
@@ -118,7 +113,6 @@ export default function ExpenseCard({ expense }: ExpenseCardProps) {
               <Eye className="h-4 w-4" />
             </button>
 
-            {/* Edit */}
             <button
               type="button"
               onClick={() => setShowEdit(true)}
@@ -128,23 +122,13 @@ export default function ExpenseCard({ expense }: ExpenseCardProps) {
               <Pencil className="h-4 w-4" />
             </button>
 
-            {/* Delete */}
             <button
               type="button"
-              onClick={handleDelete}
-              onBlur={() => setConfirmDelete(false)}
-              disabled={deleteMutation.isPending}
-              className={`rounded-lg p-2 transition-colors ${confirmDelete
-                ? "bg-red-50 text-red-600 hover:bg-red-100"
-                : "text-slate-400 hover:bg-slate-100 hover:text-red-600"
-                }`}
-              title={confirmDelete ? "Click again to confirm" : "Delete"}
+              onClick={() => setShowDelete(true)}
+              className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-600"
+              title="Delete expense"
             >
-              {deleteMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -161,6 +145,14 @@ export default function ExpenseCard({ expense }: ExpenseCardProps) {
         <ExpenseEditModal
           expense={expense}
           onClose={() => setShowEdit(false)}
+        />
+      )}
+      {showDelete && (
+        <DeleteConfirmModal
+          merchantName={expense.merchant}
+          isDeleting={deleteMutation.isPending}
+          onConfirm={handleDelete}
+          onCancel={() => setShowDelete(false)}
         />
       )}
     </>
