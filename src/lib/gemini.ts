@@ -6,11 +6,28 @@ export const geminiModel = genAI.getGenerativeModel({
   model: "gemini-2.5-flash",
 });
 
-export const RECEIPT_EXTRACTION_PROMPT = `You are an expert receipt parser. Analyze this receipt image and extract the following information in JSON format.
+export const RECEIPT_EXTRACTION_PROMPT = `You are an expert document analyzer and receipt parser.
 
-Return ONLY valid JSON with this exact structure (no markdown, no code blocks):
+STEP 1 — CLASSIFY THE IMAGE:
+Determine if this image is one of:
+- "receipt" (store receipt, POS printout, sales slip, etc.)
+- "invoice" (bill, invoice, utility bill, payment notice, etc.)
+- "other" (not a receipt or invoice — e.g. random photo, screenshot, document, meme, etc.)
+
+STEP 2 — IF "receipt" or "invoice", extract data. IF "other", return only the classification.
+
+Return ONLY valid JSON with NO markdown and NO code blocks.
+
+If the image is NOT a receipt or invoice, return:
 {
-  "merchant": "Store/Restaurant name",
+  "documentType": "other",
+  "error": "The uploaded image is not a receipt or invoice. Please upload a valid receipt or invoice image."
+}
+
+If the image IS a receipt or invoice, return:
+{
+  "documentType": "receipt" or "invoice",
+  "merchant": "Store/Restaurant/Company name",
   "date": "YYYY-MM-DD",
   "time": "HH:MM" or null,
   "total": 0.00,
@@ -30,6 +47,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no code blocks):
 }
 
 Rules:
+- ALWAYS include the "documentType" field
 - If a field is not visible on the receipt, use null
 - For Nigerian receipts, default currency to "NGN"
 - Categorize based on merchant type and items purchased

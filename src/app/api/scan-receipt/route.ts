@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
     const response = result.response;
     const text = response.text();
 
-    // Clean the response - remove markdown code blocks if present
     const cleanedText = text
       .replace(/```json\n?/g, "")
       .replace(/```\n?/g, "")
@@ -33,7 +32,25 @@ export async function POST(request: NextRequest) {
 
     const data = JSON.parse(cleanedText);
 
-    return NextResponse.json({ success: true, data });
+    // Check if the image is a valid receipt or invoice
+    if (data.documentType === "other") {
+      return NextResponse.json(
+        {
+          success: false,
+          isValidDocument: false,
+          error:
+            data.error ||
+            "The uploaded image is not a receipt or invoice. Please upload a valid receipt or invoice image.",
+        },
+        { status: 422 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      isValidDocument: true,
+      data,
+    });
   } catch (error) {
     console.error("Scan receipt error:", error);
 
