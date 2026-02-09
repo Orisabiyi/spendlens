@@ -27,8 +27,10 @@ export async function GET(request: NextRequest) {
 
     if (startDate || endDate) {
       where.date = {};
-      if (startDate) (where.date as Record<string, unknown>).gte = new Date(startDate);
-      if (endDate) (where.date as Record<string, unknown>).lte = new Date(endDate);
+      if (startDate)
+        (where.date as Record<string, unknown>).gte = new Date(startDate);
+      if (endDate)
+        (where.date as Record<string, unknown>).lte = new Date(endDate);
     }
 
     const [expenses, total] = await Promise.all([
