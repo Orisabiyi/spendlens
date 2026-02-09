@@ -21,29 +21,31 @@ export default function ExpensesPage() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-3xl px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Expenses</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            View and manage all your scanned expenses
-          </p>
-        </div>
+      <main className="bg-white/80 h-screen px-4 py-8">
+        <section className="max-w-5xl mx-auto">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-slate-900">Expenses</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              View and manage all your scanned expenses
+            </p>
+          </div>
 
-        <div className="space-y-4">
-          <ExpenseFiltersBar
-            filters={filters}
-            onFiltersChange={setFilters}
-            totalResults={pagination.total}
-          />
+          <div className="space-y-4">
+            <ExpenseFiltersBar
+              filters={filters}
+              onFiltersChange={setFilters}
+              totalResults={pagination.total}
+            />
 
-          <ExpenseList expenses={expenses} isLoading={isLoading} />
+            <ExpenseList expenses={expenses} isLoading={isLoading} />
 
-          <Pagination
-            page={pagination.page}
-            totalPages={pagination.pages}
-            onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
-          />
-        </div>
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.pages}
+              onPageChange={(page) => setFilters((prev) => ({ ...prev, page }))}
+            />
+          </div>
+        </section>
       </main>
     </>
   );
