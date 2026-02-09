@@ -56,9 +56,9 @@ export async function PUT(
         notes: body.notes || null,
         items: {
           create: (body.items || []).map(
-            (item: { name: string; quantity: string; price: number }) => ({
+            (item: { name: string; quantity: string | number; price: number }) => ({
               name: item.name,
-              quantity: item.quantity || "1",
+              quantity: String(item.quantity || "1"),
               price: item.price,
             })
           ),
