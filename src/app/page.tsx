@@ -12,6 +12,7 @@ export default function Home() {
             Upload a receipt image and let AI extract the details
           </p>
         </div>
+
         <ReceiptScanner />
       </header>
     </>

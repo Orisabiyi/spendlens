@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export const geminiModel = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash-exp",
+  model: "gemini-2.5-flash",
 });
 
 export const RECEIPT_EXTRACTION_PROMPT = `You are an expert receipt parser. Analyze this receipt image and extract the following information in JSON format.
