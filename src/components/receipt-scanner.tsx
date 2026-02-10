@@ -141,7 +141,7 @@ export default function ReceiptScanner() {
   };
 
   return (
-    <div className="space-y-6 w-1/2">
+    <div className="space-y-6 lg:w-1/2">
       {/* Step Indicator */}
       <div className="flex items-center justify-center gap-1">
         {steps.map((s, i) => (
