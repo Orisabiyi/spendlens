@@ -5,6 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "month";
+    const currency = searchParams.get("currency") || null;
 
     // Calculate date range
     const now = new Date();
@@ -31,42 +32,92 @@ export async function GET(request: NextRequest) {
     const expenses = await prisma.expense.findMany({
       where: {
         date: { gte: startDate },
+        ...(currency ? { currency } : {}),
       },
       include: { items: true },
       orderBy: { date: "asc" },
     });
 
+    // Get all unique currencies across ALL expenses (not just filtered)
+    const allExpenses = await prisma.expense.findMany({
+      where: { date: { gte: startDate } },
+      select: { currency: true },
+    });
+    const currencies = [...new Set(allExpenses.map((e) => e.currency))].sort();
+
+    // If no currency filter and multiple currencies exist, use the most common one
+    const activeCurrency =
+      currency ||
+      (currencies.length > 0
+        ? (() => {
+          const counts = new Map<string, number>();
+          allExpenses.forEach((e) => {
+            counts.set(e.currency, (counts.get(e.currency) || 0) + 1);
+          });
+          return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+        })()
+        : "NGN");
+
+    // Filter to active currency for aggregations
+    const filtered = expenses.filter((e) => e.currency === activeCurrency);
+
     // Summary calculations
-    const totals = expenses.map((e) => Number(e.total));
+    const totals = filtered.map((e) => Number(e.total));
     const totalSpent = totals.reduce((sum, t) => sum + t, 0);
-    const receiptCount = expenses.length;
+    const receiptCount = filtered.length;
     const averageExpense = receiptCount > 0 ? totalSpent / receiptCount : 0;
     const biggestExpense = totals.length > 0 ? Math.max(...totals) : 0;
 
-    // Category breakdown
-    const categoryMap = new Map<string, number>();
+    // Currency breakdown (all currencies, not just active)
+    const currencyTotals = new Map<string, { total: number; count: number }>();
     expenses.forEach((e) => {
+      const current = currencyTotals.get(e.currency) || {
+        total: 0,
+        count: 0,
+      };
+      currencyTotals.set(e.currency, {
+        total: current.total + Number(e.total),
+        count: current.count + 1,
+      });
+    });
+    const currencyBreakdown = Array.from(currencyTotals.entries())
+      .map(([cur, data]) => ({
+        currency: cur,
+        total: Math.round(data.total * 100) / 100,
+        count: data.count,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // Category breakdown (active currency only)
+    const categoryMap = new Map<string, number>();
+    filtered.forEach((e) => {
       const current = categoryMap.get(e.category) || 0;
       categoryMap.set(e.category, current + Number(e.total));
     });
     const categoryBreakdown = Array.from(categoryMap.entries())
-      .map(([category, total]) => ({ category, total: Math.round(total * 100) / 100 }))
+      .map(([category, total]) => ({
+        category,
+        total: Math.round(total * 100) / 100,
+      }))
       .sort((a, b) => b.total - a.total);
 
-    // Daily spending trend
+    // Daily spending trend (active currency only)
     const dailyMap = new Map<string, number>();
-    expenses.forEach((e) => {
+    filtered.forEach((e) => {
       const day = e.date.toISOString().split("T")[0];
       const current = dailyMap.get(day) || 0;
       dailyMap.set(day, current + Number(e.total));
     });
     const dailyTrend = Array.from(dailyMap.entries())
-      .map(([date, total]) => ({ date, total: Math.round(total * 100) / 100 }))
+      .map(([date, total]) => ({
+        date,
+        total: Math.round(total * 100) / 100,
+      }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Top merchants
+    // Top merchants (active currency only)
     const merchantMap = new Map<string, { total: number; count: number }>();
-    expenses.forEach((e) => {
+    filtered.forEach((e) => {
       const current = merchantMap.get(e.merchant) || { total: 0, count: 0 };
       merchantMap.set(e.merchant, {
         total: current.total + Number(e.total),
@@ -82,7 +133,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.total - a.total)
       .slice(0, 7);
 
-    // Recent expenses (last 5)
+    // Recent expenses (all currencies)
     const recentExpenses = expenses
       .sort((a, b) => b.date.getTime() - a.date.getTime())
       .slice(0, 5)
@@ -102,6 +153,9 @@ export async function GET(request: NextRequest) {
         averageExpense: Math.round(averageExpense * 100) / 100,
         biggestExpense: Math.round(biggestExpense * 100) / 100,
       },
+      currencies,
+      activeCurrency,
+      currencyBreakdown,
       categoryBreakdown,
       dailyTrend,
       topMerchants,
