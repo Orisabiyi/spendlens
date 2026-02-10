@@ -21,6 +21,55 @@ import Image from "next/image";
 
 type ScanStep = "upload" | "preview" | "scanning" | "invalid" | "result";
 
+function compressImage(file: File, maxWidth = 1200): Promise<File> {
+  return new Promise((resolve) => {
+    // Skip non-compressible or small files
+    if (file.size < 500 * 1024) {
+      resolve(file);
+      return;
+    }
+
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob && blob.size < file.size) {
+            resolve(new File([blob], file.name, { type: "image/jpeg" }));
+          } else {
+            resolve(file);
+          }
+        },
+        "image/jpeg",
+        0.8
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+
+    img.src = url;
+  });
+}
+
 export default function ReceiptScanner() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -56,15 +105,18 @@ export default function ReceiptScanner() {
       return;
     }
 
-    setSelectedFile(file);
+    // Compress large images to avoid API limits
+    const compressed = await compressImage(file);
+
+    setSelectedFile(compressed);
     setScanResult(null);
     setInvalidMessage("");
 
-    const url = URL.createObjectURL(file);
+    const url = URL.createObjectURL(compressed);
     setPreview(url);
     setStep("preview");
 
-    const base64 = await fileToBase64(file);
+    const base64 = await fileToBase64(compressed);
     setImageBase64(base64);
   }, []);
 

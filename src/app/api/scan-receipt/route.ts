@@ -1,9 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { geminiModel, RECEIPT_EXTRACTION_PROMPT } from "@/lib/gemini";
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "10mb",
+    },
+  },
+};
+
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
-    const { image, mimeType } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Request too large or invalid. Try a smaller image." },
+        { status: 413 }
+      );
+    }
+
+    const { image, mimeType } = body;
 
     if (!image) {
       return NextResponse.json(
@@ -32,7 +52,6 @@ export async function POST(request: NextRequest) {
 
     const data = JSON.parse(cleanedText);
 
-    // Check if the image is a valid receipt or invoice
     if (data.documentType === "other") {
       return NextResponse.json(
         {
