@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/get-session";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
-    const expense = await prisma.expense.findUnique({
-      where: { id },
+
+    const expense = await prisma.expense.findFirst({
+      where: { id, userId },
       include: { items: true },
     });
 
@@ -21,7 +28,7 @@ export async function GET(
 
     return NextResponse.json(expense);
   } catch (error) {
-    console.error("Get expense error:", error);
+    console.error("Fetch expense error:", error);
     return NextResponse.json(
       { error: "Failed to fetch expense" },
       { status: 500 }
@@ -34,13 +41,27 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await request.json();
 
-    // Delete existing items and recreate
-    await prisma.expenseItem.deleteMany({
-      where: { expenseId: id },
+    // Verify ownership
+    const existing = await prisma.expense.findFirst({
+      where: { id, userId },
     });
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Expense not found" },
+        { status: 404 }
+      );
+    }
+
+    // Delete existing items
+    await prisma.expenseItem.deleteMany({ where: { expenseId: id } });
 
     const expense = await prisma.expense.update({
       where: { id },
@@ -53,6 +74,7 @@ export async function PUT(
         category: body.category || "Other",
         paymentMethod: body.paymentMethod || null,
         taxAmount: body.taxAmount || null,
+        confidence: body.confidence || "medium",
         notes: body.notes || null,
         items: {
           create: (body.items || []).map(
@@ -67,7 +89,7 @@ export async function PUT(
       include: { items: true },
     });
 
-    return NextResponse.json({ success: true, expense });
+    return NextResponse.json(expense);
   } catch (error) {
     console.error("Update expense error:", error);
     return NextResponse.json(
@@ -78,15 +100,29 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
 
-    await prisma.expense.delete({
-      where: { id },
+    // Verify ownership
+    const existing = await prisma.expense.findFirst({
+      where: { id, userId },
     });
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Expense not found" },
+        { status: 404 }
+      );
+    }
+
+    await prisma.expense.delete({ where: { id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {
