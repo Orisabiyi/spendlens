@@ -38,23 +38,25 @@ export async function GET(request: NextRequest) {
       orderBy: { date: "asc" },
     });
 
-    // Get all unique currencies across ALL expenses (not just filtered)
-    const allExpenses = await prisma.expense.findMany({
-      where: { date: { gte: startDate } },
+    // Get all unique currencies across ALL expenses (regardless of period)
+    const allCurrencyRecords = await prisma.expense.findMany({
       select: { currency: true },
+      distinct: ["currency"],
     });
-    const currencies = [...new Set(allExpenses.map((e) => e.currency))].sort();
+    const currencies = allCurrencyRecords.map((e) => e.currency).sort();
 
     // If no currency filter and multiple currencies exist, use the most common one
     const activeCurrency =
       currency ||
       (currencies.length > 0
-        ? (() => {
-          const counts = new Map<string, number>();
-          allExpenses.forEach((e) => {
-            counts.set(e.currency, (counts.get(e.currency) || 0) + 1);
+        ? await (async () => {
+          const counts = await prisma.expense.groupBy({
+            by: ["currency"],
+            _count: { currency: true },
+            orderBy: { _count: { currency: "desc" } },
+            take: 1,
           });
-          return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+          return counts[0]?.currency || "NGN";
         })()
         : "NGN");
 
