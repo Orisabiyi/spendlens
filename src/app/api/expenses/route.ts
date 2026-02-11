@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUserId } from "@/lib/get-session";
 
-// GET /api/expenses - List expenses with filters
 export async function GET(request: NextRequest) {
   try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
@@ -12,25 +17,17 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { userId };
 
-    if (category && category !== "all") {
-      where.category = category;
-    }
-
+    if (category) where.category = category;
     if (search) {
-      where.OR = [
-        { merchant: { contains: search, mode: "insensitive" } },
-        { notes: { contains: search, mode: "insensitive" } },
-      ];
+      where.merchant = { contains: search, mode: "insensitive" };
     }
-
     if (startDate || endDate) {
-      where.date = {};
-      if (startDate)
-        (where.date as Record<string, unknown>).gte = new Date(startDate);
-      if (endDate)
-        (where.date as Record<string, unknown>).lte = new Date(endDate);
+      where.date = {
+        ...(startDate ? { gte: new Date(startDate) } : {}),
+        ...(endDate ? { lte: new Date(endDate) } : {}),
+      };
     }
 
     const [expenses, total] = await Promise.all([
@@ -50,11 +47,11 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / limit),
       },
     });
   } catch (error) {
-    console.error("Get expenses error:", error);
+    console.error("Fetch expenses error:", error);
     return NextResponse.json(
       { error: "Failed to fetch expenses" },
       { status: 500 }
@@ -62,13 +59,18 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/expenses - Create new expense
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
 
     const expense = await prisma.expense.create({
       data: {
+        userId,
         merchant: body.merchant,
         date: new Date(body.date),
         time: body.time || null,
@@ -93,11 +95,11 @@ export async function POST(request: NextRequest) {
       include: { items: true },
     });
 
-    return NextResponse.json({ success: true, expense }, { status: 201 });
+    return NextResponse.json(expense, { status: 201 });
   } catch (error) {
     console.error("Create expense error:", error);
     return NextResponse.json(
-      { error: "Failed to save expense" },
+      { error: "Failed to create expense" },
       { status: 500 }
     );
   }
