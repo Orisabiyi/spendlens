@@ -5,7 +5,6 @@ import { getCurrentUserId } from "@/lib/get-session";
 export async function GET(request: NextRequest) {
   try {
     const userId = await getCurrentUserId();
-
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -14,7 +13,6 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get("period") || "month";
     const currency = searchParams.get("currency") || null;
 
-    // Calculate date range
     const now = new Date();
     let startDate: Date;
 
@@ -35,9 +33,9 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    // Fetch all expenses in range
     const expenses = await prisma.expense.findMany({
       where: {
+        userId,
         date: { gte: startDate },
         ...(currency ? { currency } : {}),
       },
@@ -45,20 +43,21 @@ export async function GET(request: NextRequest) {
       orderBy: { date: "asc" },
     });
 
-    // Get all unique currencies across ALL expenses (regardless of period)
+    // Get all unique currencies (regardless of period)
     const allCurrencyRecords = await prisma.expense.findMany({
+      where: { userId },
       select: { currency: true },
       distinct: ["currency"],
     });
     const currencies = allCurrencyRecords.map((e) => e.currency).sort();
 
-    // If no currency filter and multiple currencies exist, use the most common one
     const activeCurrency =
       currency ||
       (currencies.length > 0
         ? await (async () => {
           const counts = await prisma.expense.groupBy({
             by: ["currency"],
+            where: { userId },
             _count: { currency: true },
             orderBy: { _count: { currency: "desc" } },
             take: 1,
@@ -67,23 +66,17 @@ export async function GET(request: NextRequest) {
         })()
         : "NGN");
 
-    // Filter to active currency for aggregations
     const filtered = expenses.filter((e) => e.currency === activeCurrency);
 
-    // Summary calculations
     const totals = filtered.map((e) => Number(e.total));
     const totalSpent = totals.reduce((sum, t) => sum + t, 0);
     const receiptCount = filtered.length;
     const averageExpense = receiptCount > 0 ? totalSpent / receiptCount : 0;
     const biggestExpense = totals.length > 0 ? Math.max(...totals) : 0;
 
-    // Currency breakdown (all currencies, not just active)
     const currencyTotals = new Map<string, { total: number; count: number }>();
     expenses.forEach((e) => {
-      const current = currencyTotals.get(e.currency) || {
-        total: 0,
-        count: 0,
-      };
+      const current = currencyTotals.get(e.currency) || { total: 0, count: 0 };
       currencyTotals.set(e.currency, {
         total: current.total + Number(e.total),
         count: current.count + 1,
@@ -97,7 +90,6 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => b.count - a.count);
 
-    // Category breakdown (active currency only)
     const categoryMap = new Map<string, number>();
     filtered.forEach((e) => {
       const current = categoryMap.get(e.category) || 0;
@@ -110,7 +102,6 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => b.total - a.total);
 
-    // Daily spending trend (active currency only)
     const dailyMap = new Map<string, number>();
     filtered.forEach((e) => {
       const day = e.date.toISOString().split("T")[0];
@@ -124,7 +115,6 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Top merchants (active currency only)
     const merchantMap = new Map<string, { total: number; count: number }>();
     filtered.forEach((e) => {
       const current = merchantMap.get(e.merchant) || { total: 0, count: 0 };
@@ -142,7 +132,6 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.total - a.total)
       .slice(0, 7);
 
-    // Recent expenses (all currencies)
     const recentExpenses = expenses
       .sort((a, b) => b.date.getTime() - a.date.getTime())
       .slice(0, 5)
