@@ -7,7 +7,7 @@ export default function Home() {
       <Navbar />
       <header className="px-4 py-8 bg-white/80 h-screen flex flex-col items-center justify-center">
         <div className="mb-6 lg:w-1/2">
-          <h1 className="text-dd2xl font-bold text-slate-900">Scan Receipt</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Scan Receipt</h1>
           <p className="mt-1 text-sm text-slate-500">
             Upload a receipt image and let AI extract the details
           </p>
