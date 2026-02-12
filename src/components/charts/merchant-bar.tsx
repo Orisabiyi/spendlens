@@ -28,7 +28,7 @@ export default function MerchantBar({ data, currency = "NGN" }: MerchantBarProps
   const formatted = data.map((d) => ({
     ...d,
     shortName:
-      d.merchant.length > 14 ? d.merchant.slice(0, 14) + "…" : d.merchant,
+      d.merchant.length > 12 ? d.merchant.slice(0, 12) + "…" : d.merchant,
   }));
 
   return (
@@ -48,10 +48,10 @@ export default function MerchantBar({ data, currency = "NGN" }: MerchantBarProps
         <YAxis
           type="category"
           dataKey="shortName"
-          tick={{ fontSize: 11, fill: "#64748b" }}
+          tick={{ fontSize: 10, fill: "#64748b" }}
           axisLine={false}
           tickLine={false}
-          width={100}
+          width={85}
         />
         <Tooltip
           content={({ active, payload }) => {
