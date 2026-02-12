@@ -195,9 +195,9 @@ export default function ReceiptScanner() {
   return (
     <div className="space-y-6 lg:w-1/2">
       {/* Step Indicator */}
-      <div className="flex items-center justify-center gap-1">
+      <div className="flex items-center justify-center gap-4">
         {steps.map((s, i) => (
-          <div key={s.key} className="flex items-center gap-1">
+          <div key={s.key} className="flex items-center justify-center gap-1">
             <div
               className={`flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all duration-300 ${step === "invalid" && i === 2
                 ? "bg-red-600 text-white shadow-md shadow-red-200"
