@@ -53,7 +53,7 @@ export default function Navbar() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
             <ScanLine className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-bold text-slate-900">SpendLens</span>
+          <span className="text-sm md:text-lg font-bold text-slate-900">SpendLens</span>
         </Link>
 
         {/* Nav Links */}
