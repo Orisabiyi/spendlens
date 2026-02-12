@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, X } from "lucide-react";
-import { EXPENSE_CATEGORIES } from "@/types/expense";
-import { ExpenseFilters } from "@/types/expense";
+import { Search, SlidersHorizontal, X } from "lucide-react";
+import { ExpenseFilters, EXPENSE_CATEGORIES } from "@/types/expense";
 
 interface ExpenseFiltersBarProps {
   filters: ExpenseFilters;
@@ -19,28 +18,36 @@ export default function ExpenseFiltersBar({
   const [searchInput, setSearchInput] = useState(filters.search || "");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Debounce search input
+  const activeFilterCount = [
+    filters.category,
+    filters.startDate,
+    filters.endDate,
+  ].filter(Boolean).length;
+
+  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchInput !== (filters.search || "")) {
-        onFiltersChange({ ...filters, search: searchInput || undefined, page: 1 });
+        onFiltersChange({
+          ...filters,
+          search: searchInput || undefined,
+          page: 1,
+        });
       }
     }, 400);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
-  const hasActiveFilters =
-    filters.category || filters.startDate || filters.endDate;
-
   const clearFilters = () => {
     setSearchInput("");
     onFiltersChange({ page: 1, limit: 10 });
+    setShowFilters(false);
   };
 
   return (
     <div className="space-y-3">
-      {/* Search + Filter toggle */}
+      {/* Search + Toggle */}
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -48,16 +55,16 @@ export default function ExpenseFiltersBar({
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search by merchant..."
-            className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none"
+            placeholder="Search expenses..."
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-blue-500 focus:outline-none sm:h-10"
           />
           {searchInput && (
             <button
               type="button"
               onClick={() => setSearchInput("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
@@ -65,32 +72,32 @@ export default function ExpenseFiltersBar({
         <button
           type="button"
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${hasActiveFilters
-            ? "border-blue-200 bg-blue-50 text-blue-700"
-            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+          className={`flex h-10 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium transition-colors sm:px-4 ${activeFilterCount > 0
+              ? "border-blue-200 bg-blue-50 text-blue-600"
+              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
             }`}
         >
-          <Filter className="h-4 w-4" />
+          <SlidersHorizontal className="h-4 w-4" />
           <span className="hidden sm:inline">Filters</span>
-          {hasActiveFilters && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white">
-              {[filters.category, filters.startDate || filters.endDate].filter(Boolean).length}
+          {activeFilterCount > 0 && (
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+              {activeFilterCount}
             </span>
           )}
         </button>
       </div>
 
-      {/* Filter panel */}
+      {/* Filter Panel */}
       {showFilters && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="grid gap-3 sm:grid-cols-3">
             {/* Category */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-500">
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Category
               </label>
               <select
-                value={filters.category || "all"}
+                value={filters.category || ""}
                 onChange={(e) =>
                   onFiltersChange({
                     ...filters,
@@ -99,9 +106,9 @@ export default function ExpenseFiltersBar({
                     page: 1,
                   })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
+                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700 focus:border-blue-500 focus:outline-none"
               >
-                <option value="all">All Categories</option>
+                <option value="">All Categories</option>
                 {EXPENSE_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -112,7 +119,7 @@ export default function ExpenseFiltersBar({
 
             {/* Start Date */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-500">
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 From
               </label>
               <input
@@ -125,13 +132,13 @@ export default function ExpenseFiltersBar({
                     page: 1,
                   })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
+                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700 focus:border-blue-500 focus:outline-none"
               />
             </div>
 
             {/* End Date */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-500">
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 To
               </label>
               <input
@@ -144,16 +151,16 @@ export default function ExpenseFiltersBar({
                     page: 1,
                   })
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
+                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700 focus:border-blue-500 focus:outline-none"
               />
             </div>
           </div>
 
-          {hasActiveFilters && (
+          {activeFilterCount > 0 && (
             <button
               type="button"
               onClick={clearFilters}
-              className="mt-3 text-xs font-medium text-blue-600 hover:text-blue-700"
+              className="mt-3 text-xs font-medium text-red-500 hover:text-red-600"
             >
               Clear all filters
             </button>

@@ -6,11 +6,11 @@ import {
   Store,
   Calendar,
   Clock,
-  CreditCard,
   Tag,
-  ShieldCheck,
+  CreditCard,
   ShoppingCart,
   FileText,
+  Coins,
 } from "lucide-react";
 import { Expense } from "@/types/expense";
 import {
@@ -30,111 +30,99 @@ export default function ExpenseDetailModal({
   expense,
   onClose,
 }: ExpenseDetailModalProps) {
-  // Close on Escape key
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
+      document.removeEventListener("keydown", handleKey);
       document.body.style.overflow = "";
     };
-  }, []);
+  }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
+      <div className="relative max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:max-w-lg sm:rounded-2xl">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-5 py-4">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex items-center gap-3">
             <div
-              className="flex h-10 w-10 items-center justify-center rounded-full"
+              className="flex h-9 w-9 items-center justify-center rounded-lg"
               style={{
                 backgroundColor: getCategoryColor(expense.category) + "15",
               }}
             >
               <Store
-                className="h-5 w-5"
+                className="h-4 w-4"
                 style={{ color: getCategoryColor(expense.category) }}
               />
             </div>
             <div>
-              <h2 className="font-semibold text-slate-900">
+              <h2 className="text-base font-semibold text-slate-900">
                 {expense.merchant}
               </h2>
-              <span className="text-xs text-slate-400">
-                {formatDate(expense.date)}
+              <span
+                className={`text-[10px] font-medium capitalize ${getConfidenceColor(expense.confidence)}`}
+              >
+                {expense.confidence} confidence
               </span>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="space-y-5 p-5">
+        <div className="p-4 sm:p-5">
           {/* Total */}
-          <div className="rounded-xl bg-slate-50 p-4 text-center">
+          <div className="mb-5 rounded-xl bg-slate-50 p-4 text-center">
             <p className="text-xs text-slate-400">Total Amount</p>
-            <p className="mt-1 text-3xl font-bold text-slate-900">
+            <p className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">
               {formatCurrency(Number(expense.total), expense.currency)}
             </p>
-            <span
-              className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-medium capitalize ${getConfidenceColor(expense.confidence)}`}
-            >
-              {expense.confidence} confidence
-            </span>
           </div>
 
-          {/* Details grid */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Details Grid */}
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-4">
             <DetailItem
-              icon={<Calendar className="h-4 w-4" />}
+              icon={<Calendar className="h-3.5 w-3.5" />}
               label="Date"
               value={formatDate(expense.date)}
             />
             <DetailItem
-              icon={<Clock className="h-4 w-4" />}
+              icon={<Clock className="h-3.5 w-3.5" />}
               label="Time"
               value={expense.time || "—"}
             />
             <DetailItem
-              icon={<Tag className="h-4 w-4" />}
+              icon={<Tag className="h-3.5 w-3.5" />}
               label="Category"
               value={expense.category}
-              color={getCategoryColor(expense.category)}
             />
             <DetailItem
-              icon={<CreditCard className="h-4 w-4" />}
+              icon={<CreditCard className="h-3.5 w-3.5" />}
               label="Payment"
               value={expense.paymentMethod || "—"}
             />
             <DetailItem
-              icon={<ShieldCheck className="h-4 w-4" />}
+              icon={<Coins className="h-3.5 w-3.5" />}
               label="Currency"
               value={expense.currency}
             />
-            {expense.taxAmount && Number(expense.taxAmount) > 0 && (
+            {expense.taxAmount && (
               <DetailItem
-                icon={<FileText className="h-4 w-4" />}
+                icon={<FileText className="h-3.5 w-3.5" />}
                 label="Tax"
                 value={formatCurrency(
                   Number(expense.taxAmount),
@@ -146,32 +134,30 @@ export default function ExpenseDetailModal({
 
           {/* Items */}
           {expense.items && expense.items.length > 0 && (
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <ShoppingCart className="h-4 w-4 text-slate-400" />
-                <span className="text-sm font-medium text-slate-700">
+            <div className="mb-5">
+              <div className="mb-2.5 flex items-center gap-1.5 text-slate-400">
+                <ShoppingCart className="h-3.5 w-3.5" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider">
                   Items ({expense.items.length})
                 </span>
               </div>
-              <div className="rounded-xl border border-slate-200">
-                {expense.items.map((item, i) => (
+              <div className="space-y-1.5">
+                {expense.items.map((item) => (
                   <div
-                    key={item.id || i}
-                    className={`flex items-center justify-between px-4 py-2.5 text-sm ${i !== expense.items.length - 1
-                      ? "border-b border-slate-100"
-                      : ""
-                      }`}
+                    key={item.id}
+                    className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"
                   >
-                    <span className="text-slate-600">
-                      {item.name}
-                      {item.quantity !== "1" && (
-                        <span className="ml-1 text-slate-400">
-                          ×{item.quantity}
-                        </span>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-slate-700">{item.name}</span>
+                      <span className="ml-2 text-xs text-slate-400">
+                        ×{item.quantity}
+                      </span>
+                    </div>
+                    <span className="flex-shrink-0 font-medium text-slate-900">
+                      {formatCurrency(
+                        Number(item.price),
+                        expense.currency
                       )}
-                    </span>
-                    <span className="font-medium text-slate-900">
-                      {formatCurrency(Number(item.price), expense.currency)}
                     </span>
                   </div>
                 ))}
@@ -182,25 +168,25 @@ export default function ExpenseDetailModal({
           {/* Notes */}
           {expense.notes && (
             <div>
-              <p className="mb-1 text-xs font-medium text-slate-400">Notes</p>
-              <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                {expense.notes}
-              </p>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Notes
+              </span>
+              <p className="mt-1 text-sm text-slate-600">{expense.notes}</p>
             </div>
           )}
 
           {/* Receipt image */}
           {expense.imageUrl && (
-            <div>
-              <p className="mb-1 text-xs font-medium text-slate-400">
-                Receipt Image
-              </p>
+            <div className="mt-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Receipt
+              </span>
               <Image
                 width={500}
                 height={500}
                 src={expense.imageUrl}
                 alt="Receipt"
-                className="w-full rounded-xl border border-slate-200 object-contain"
+                className="mt-2 w-full rounded-xl border border-slate-200"
               />
             </div>
           )}
@@ -214,24 +200,20 @@ function DetailItem({
   icon,
   label,
   value,
-  color,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
-  color?: string;
 }) {
   return (
-    <div className="rounded-lg bg-slate-50 p-3">
-      <div className="mb-1 flex items-center gap-1.5 text-slate-400">
+    <div className="rounded-lg bg-slate-50 px-3 py-2.5">
+      <div className="mb-0.5 flex items-center gap-1 text-slate-400">
         {icon}
-        <span className="text-[10px] font-medium uppercase tracking-wide">
+        <span className="text-[10px] font-semibold uppercase tracking-wider">
           {label}
         </span>
       </div>
-      <p className="text-sm font-medium text-slate-900" style={color ? { color } : undefined}>
-        {value}
-      </p>
+      <p className="text-sm font-medium text-slate-900">{value}</p>
     </div>
   );
 }
